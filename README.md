@@ -1,9 +1,5 @@
 # 📊 binsight
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/sumant1122/binsight/rust.yml?branch=master)](https://github.com/sumant1122/binsight/actions)
-
 **binsight** is a high-performance, opinionated binary size analyzer for developers. It goes beyond raw data dumps, providing **actionable insights** and **health diagnostics** to help you prune bloat from your executables.
 
 ---
