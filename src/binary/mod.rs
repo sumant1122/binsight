@@ -18,10 +18,8 @@ pub struct SectionInfo {
 
 #[derive(Clone)]
 pub struct SymbolInfo {
-    pub name: String,
     pub demangled_name: String,
     pub size: u64,
-    pub crate_name: Option<String>,
     pub module_path: Vec<String>,
     pub file: Option<String>,
     pub line: Option<u32>,
@@ -56,7 +54,6 @@ pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
                 .map(|s| s.to_string())
                 .collect();
             
-            let crate_name = parts.first().cloned();
             let module_path = if parts.len() > 1 {
                 parts[..parts.len()-1].to_vec()
             } else {
@@ -78,10 +75,8 @@ pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
             }
 
             symbols.push(SymbolInfo {
-                name,
                 demangled_name: demangled,
                 size: symbol.size(),
-                crate_name,
                 module_path,
                 file: source_file,
                 line: source_line,

@@ -32,7 +32,6 @@ pub struct Diagnostic {
 pub enum Severity {
     Info,
     Warning,
-    Critical,
 }
 
 pub fn run_diagnostics(info: &BinaryInfo) -> Vec<Diagnostic> {

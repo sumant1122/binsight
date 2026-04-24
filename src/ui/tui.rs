@@ -46,7 +46,7 @@ struct App {
 fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, info: BinaryInfo) -> io::Result<()> {
     let mut group_sizes: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
     for symbol in &info.symbols {
-        let name = symbol.crate_name.clone().unwrap_or_else(|| "unknown".to_string());
+        let name = symbol.module_path.first().cloned().unwrap_or_else(|| "unknown".to_string());
         *group_sizes.entry(name).or_insert(0) += symbol.size;
     }
     let mut items: Vec<_> = group_sizes.into_iter().collect();

@@ -24,7 +24,6 @@ pub fn display_diagnostics(diags: &[Diagnostic]) {
 
     for d in diags {
         let title = match d.severity {
-            Severity::Critical => d.title.red().bold(),
             Severity::Warning => d.title.yellow().bold(),
             Severity::Info => d.title.blue().bold(),
         };
