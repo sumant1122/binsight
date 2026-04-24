@@ -1,6 +1,6 @@
-# 📊 binsize
+# 📊 binsight
 
-`binsize` is a production-quality binary size analyzer designed for developers. It helps you understand exactly why your binaries are large by breaking them down by section, crate, and symbol, and provides actionable suggestions for optimization.
+`binsight` is a production-quality binary size analyzer designed for developers. It helps you understand exactly why your binaries are large by breaking them down by section, crate, and symbol, and provides actionable suggestions for optimization.
 
 ## ✨ Features
 
@@ -17,8 +17,8 @@
 Ensure you have Rust and Cargo installed, then clone the repository and build:
 
 ```bash
-git clone https://github.com/youruser/binsize.git
-cd binsize
+git clone https://github.com/youruser/binsight.git
+cd binsight
 cargo install --path .
 ```
 
@@ -27,42 +27,42 @@ cargo install --path .
 ### 1. Basic Analysis
 Show the size contribution of each binary section:
 ```bash
-binsize analyze target/release/my_app
+binsight analyze target/release/my_app
 ```
 
 ### 2. Interactive Explorer
 Launch the TUI to explore size distribution:
 ```bash
-binsize explore target/release/my_app
+binsight explore target/release/my_app
 ```
 
 ### 3. Find Top Contributors
 Identify the largest crates and symbols. Use `--depth` to see sub-modules:
 ```bash
 # Crate level
-binsize top target/release/my_app --depth 1
+binsight top target/release/my_app --depth 1
 
 # Module level (drill-down)
-binsize top target/release/my_app --depth 3
+binsight top target/release/my_app --depth 3
 ```
 
 ### 4. Binary Diagnosis
 Run detailed health checks to find bloat:
 ```bash
-binsize diagnose target/release/my_app
+binsight diagnose target/release/my_app
 ```
 
 ### 5. Compare Binaries (Diff)
 See what changed between two versions of a binary:
 ```bash
-binsize diff old_binary new_binary
+binsight diff old_binary new_binary
 ```
 
 ## 💡 Output Examples
 
 ### 📊 Analyze Output
 ```text
-📊 binsize Analysis
+📊 binsight Analysis
 Total Size: 2.45 MB
 
 ╭────────────────────┬───────────┬───────╮

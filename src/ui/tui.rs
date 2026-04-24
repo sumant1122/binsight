@@ -105,7 +105,7 @@ fn ui(f: &mut ratatui::Frame, app: &mut App) {
         ].as_ref())
         .split(f.size());
 
-    let title = Paragraph::new("binsize Explorer - Press 'q' to quit")
+    let title = Paragraph::new("binsight Explorer - Press 'q' to quit")
         .block(Block::default().borders(Borders::ALL).title("Info"));
     f.render_widget(title, chunks[0]);
 

@@ -115,7 +115,7 @@ pub fn format_size(bytes: u64) -> String {
 }
 
 pub fn display_analysis(info: &BinaryInfo) {
-    println!("\n📊 {} Analysis", "binsize".cyan().bold());
+    println!("\n📊 {} Analysis", "binsight".cyan().bold());
     println!("Total Size: {}\n", format_size(info.total_size).green().bold());
 
     let mut table = Table::new();

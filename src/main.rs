@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser)]
-#[command(name = "binsize")]
+#[command(name = "binsight")]
 #[command(about = "A binary size analyzer for developers", long_about = None)]
 struct Cli {
     #[command(subcommand)]
