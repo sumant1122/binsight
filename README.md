@@ -8,7 +8,8 @@
 - **Top Contributors**: Identify which crates or modules are consuming the most space. Supports deep drill-down with `--depth`.
 - **Interactive Explorer (TUI)**: Navigate your binary's size distribution interactively in the terminal.
 - **Diff Mode**: Compare two binaries to see exactly what changed between builds.
-- **Suggestions Engine**: Automatically detect common size issues (like debug symbols in release builds) and get optimization tips.
+- **Binary Diagnosis**: Automatically detect common size issues (monomorphization bloat, panic machinery, unstripped symbols).
+- **Source Mapping**: Link large symbols directly to source files and line numbers.
 - **Cross-Platform**: Supports ELF (Linux), Mach-O (macOS), and PE (Windows).
 
 ## 🚀 Installation
@@ -46,7 +47,7 @@ binsize top target/release/my_app --depth 3
 ```
 
 ### 4. Binary Diagnosis
-Run detailed health checks to find bloat (generics, panic machinery, etc.):
+Run detailed health checks to find bloat:
 ```bash
 binsize diagnose target/release/my_app
 ```
@@ -55,6 +56,56 @@ binsize diagnose target/release/my_app
 See what changed between two versions of a binary:
 ```bash
 binsize diff old_binary new_binary
+```
+
+## 💡 Output Examples
+
+### 📊 Analyze Output
+```text
+📊 binsize Analysis
+Total Size: 2.45 MB
+
+╭────────────────────┬───────────┬───────╮
+│ Section            ┆ Size      ┆ %     │
+╞════════════════════╪═══════════╪═══════╡
+│ .text              ┆ 1.84 MB   ┆ 75.1% │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┤
+│ .rodata            ┆ 400.12 KB ┆ 16.3% │
+╰────────────────────┴───────────┴───────╯
+
+🩺 Binary Health Diagnosis
+╭──────────┬───────────────────┬─────────────────────────────────────────────╮
+│ Category ┆ Issue             ┆ Recommendation                              │
+╞══════════╪═══════════════════╪═════════════════════════════════════════════╡
+│ Binary   ┆ Unstripped Binary ┆ Run 'strip' to reduce size by 60-80%.       │
+╰──────────┴───────────────────┴─────────────────────────────────────────────╯
+```
+
+### 🔥 Top Contributors (with Source Mapping)
+```text
+🔥 Top Contributors (Grouped by Depth 1)
+╭────────────────┬───────────┬──────╮
+│ Crate/Module   ┆ Size      ┆ %    │
+╞════════════════╪═══════════╪══════╡
+│ core           ┆ 845.15 KB ┆ 2.3% │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌┤
+│ clap_builder   ┆ 302.08 KB ┆ 0.8% │
+╰────────────────┴───────────┴──────╯
+
+📜 Largest Symbols
+╭───────────────────────────┬─────────────────────┬──────────┬──────╮
+│ Symbol                    ┆ Location            ┆ Size     ┆ %    │
+╞═══════════════════════════╪═════════════════════╪══════════╪══════╡
+│ clap_builder::parser      ┆ parser.rs:77        ┆ 15.50 KB ┆ 0.1% │
+╰───────────────────────────┴─────────────────────┴──────────┴──────╯
+```
+
+### 🔍 Diff Mode
+```text
+🔍 Binary Comparison
+Old Size: 22.39 MB
+New Size: 3.10 MB
+Delta:    19.29 MB (Saved!)
 ```
 
 ## ⚖️ License
