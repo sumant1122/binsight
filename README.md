@@ -45,7 +45,13 @@ binsize top target/release/my_app --depth 1
 binsize top target/release/my_app --depth 3
 ```
 
-### 4. Compare Binaries (Diff)
+### 4. Binary Diagnosis
+Run detailed health checks to find bloat (generics, panic machinery, etc.):
+```bash
+binsize diagnose target/release/my_app
+```
+
+### 5. Compare Binaries (Diff)
 See what changed between two versions of a binary:
 ```bash
 binsize diff old_binary new_binary

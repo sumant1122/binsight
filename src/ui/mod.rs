@@ -6,17 +6,36 @@ use comfy_table::Table;
 use crate::binary::BinaryInfo;
 use colored::*;
 
-use crate::analysis::{DiffResult, Suggestion};
+use crate::analysis::{DiffResult, Diagnostic, Severity};
 
-pub fn display_suggestions(suggestions: &[Suggestion]) {
-    if suggestions.is_empty() {
+pub fn display_diagnostics(diags: &[Diagnostic]) {
+    if diags.is_empty() {
+        println!("\n✨ {}", "No issues found. Your binary looks lean!".green().bold());
         return;
     }
 
-    println!("\n💡 {}", "Optimization Suggestions".green().bold());
-    for s in suggestions {
-        println!("• {}: {}", s.title.yellow().bold(), s.description);
+    println!("\n🩺 {}", "Binary Health Diagnosis".cyan().bold());
+    
+    let mut table = Table::new();
+    table.load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_content_arrangement(comfy_table::ContentArrangement::Dynamic)
+        .set_header(vec!["Category", "Issue", "Recommendation"]);
+
+    for d in diags {
+        let title = match d.severity {
+            Severity::Critical => d.title.red().bold(),
+            Severity::Warning => d.title.yellow().bold(),
+            Severity::Info => d.title.blue().bold(),
+        };
+
+        table.add_row(vec![
+            comfy_table::Cell::new(d.category.clone()),
+            comfy_table::Cell::new(title.to_string()),
+            comfy_table::Cell::new(d.description.clone()),
+        ]);
     }
+    println!("{table}");
 }
 
 pub fn display_diff(diff: &DiffResult) {

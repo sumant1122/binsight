@@ -22,41 +22,101 @@ pub struct SymbolDiff {
     pub new_size: u64,
 }
 
-pub struct Suggestion {
+pub struct Diagnostic {
+    pub category: String,
     pub title: String,
     pub description: String,
+    pub severity: Severity,
 }
 
-pub fn get_suggestions(info: &BinaryInfo) -> Vec<Suggestion> {
-    let mut suggestions = Vec::new();
+pub enum Severity {
+    Info,
+    Warning,
+    Critical,
+}
 
-    // Check for debug symbols
+pub fn run_diagnostics(info: &BinaryInfo) -> Vec<Diagnostic> {
+    let mut diags = Vec::new();
+
+    // 1. Strip Check
     if info.sections.iter().any(|s| s.name.contains(".debug_info")) {
-        suggestions.push(Suggestion {
-            title: "Strip Debug Symbols".to_string(),
-            description: "Your binary contains debug symbols. Use 'strip' or 'cargo build --release' to reduce size significantly.".to_string(),
+        diags.push(Diagnostic {
+            category: "Binary".to_string(),
+            title: "Unstripped Binary".to_string(),
+            description: "Debug symbols found. Run 'strip' or 'cargo build --release' to reduce size by 60-80%.".to_string(),
+            severity: Severity::Warning,
         });
     }
 
-    // Check if it's a debug build (heuristic: large std/core symbols)
-    let text_size = info.sections.iter().find(|s| s.name == ".text").map(|s| s.size).unwrap_or(0);
+    // 2. Generic Bloat Check
+    let mut generics: std::collections::HashMap<String, (usize, u64)> = std::collections::HashMap::new();
+    for sym in &info.symbols {
+        let base_name = if let Some(idx) = sym.demangled_name.rfind("::h") {
+            if sym.demangled_name[idx..].len() >= 18 { // ::h + 16 hex chars
+                &sym.demangled_name[..idx]
+            } else {
+                &sym.demangled_name
+            }
+        } else {
+            &sym.demangled_name
+        };
+        
+        let entry = generics.entry(base_name.to_string()).or_insert((0, 0));
+        entry.0 += 1;
+        entry.1 += sym.size;
+    }
+
+    let mut high_bloat_generics: Vec<_> = generics.into_iter()
+        .filter(|(_, (count, _))| *count > 5)
+        .collect();
+    high_bloat_generics.sort_by(|a, b| b.1.1.cmp(&a.1.1));
+
+    if let Some((name, (count, size))) = high_bloat_generics.first() {
+        diags.push(Diagnostic {
+            category: "Generics".to_string(),
+            title: "High Monomorphization Bloat".to_string(),
+            description: format!(
+                "Symbol '{}' is instantiated {} times, taking {}. Consider dynamic dispatch (trait objects).", 
+                name, count, crate::ui::format_size(*size)
+            ),
+            severity: Severity::Warning,
+        });
+    }
+
+    // 3. Panic machinery check
+    let panic_size: u64 = info.symbols.iter()
+        .filter(|s| s.demangled_name.contains("panic") || s.demangled_name.contains("begin_unwind"))
+        .map(|s| s.size)
+        .sum();
+
+    if panic_size > 50_000 {
+        diags.push(Diagnostic {
+            category: "Runtime".to_string(),
+            title: "Panic Machinery Bloat".to_string(),
+            description: format!(
+                "Panic handling takes {}. Consider 'panic = \"abort\"' in Cargo.toml to prune this.",
+                crate::ui::format_size(panic_size)
+            ),
+            severity: Severity::Info,
+        });
+    }
+
+    // 4. Large Read-Only Data
+    let rodata_size = info.sections.iter()
+        .find(|s| s.name == ".rodata")
+        .map(|s| s.size)
+        .unwrap_or(0);
     
-    if text_size > 1_000_000 && info.sections.iter().any(|s| s.name.contains(".debug")) {
-         suggestions.push(Suggestion {
-            title: "Use Release Mode".to_string(),
-            description: "The binary seems to be built in debug mode. Build with '--release' for a much smaller and faster binary.".to_string(),
+    if rodata_size > info.total_size / 4 && info.total_size > 1_000_000 {
+        diags.push(Diagnostic {
+            category: "Data".to_string(),
+            title: "Heavy Read-Only Data".to_string(),
+            description: "More than 25% of your binary is read-only data. Check for large embedded assets or strings.".to_string(),
+            severity: Severity::Info,
         });
     }
 
-    // Check for lto suggestion
-    if text_size > 5_000_000 {
-        suggestions.push(Suggestion {
-            title: "Enable LTO".to_string(),
-            description: "For large binaries, enabling Link Time Optimization (LTO) in your Cargo.toml can prune unused code across crates.".to_string(),
-        });
-    }
-
-    suggestions
+    diags
 }
 
 pub fn compare(old: &BinaryInfo, new: &BinaryInfo) -> DiffResult {

@@ -20,6 +20,11 @@ enum Commands {
         /// Path to the binary
         path: PathBuf,
     },
+    /// Run detailed binary health diagnosis
+    Diagnose {
+        /// Path to the binary
+        path: PathBuf,
+    },
     /// Show largest contributors
     Top {
         /// Path to the binary
@@ -49,8 +54,13 @@ fn main() -> anyhow::Result<()> {
         Commands::Analyze { path } => {
             let info = binary::load_and_analyze(&path)?;
             ui::display_analysis(&info);
-            let suggestions = analysis::get_suggestions(&info);
-            ui::display_suggestions(&suggestions);
+            let diags = analysis::run_diagnostics(&info);
+            ui::display_diagnostics(&diags);
+        }
+        Commands::Diagnose { path } => {
+            let info = binary::load_and_analyze(&path)?;
+            let diags = analysis::run_diagnostics(&info);
+            ui::display_diagnostics(&diags);
         }
         Commands::Top { path, depth } => {
             let info = binary::load_and_analyze(&path)?;
