@@ -17,7 +17,7 @@
 Ensure you have Rust and Cargo installed, then clone the repository and build:
 
 ```bash
-git clone https://github.com/youruser/binsight.git
+git clone https://github.com/sumant1122/binsight.git
 cd binsight
 cargo install --path .
 ```
