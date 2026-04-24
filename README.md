@@ -1,5 +1,7 @@
 # 📊 binsight
 
+Point **binsight** at any binary. In seconds, know exactly what's large, why it's large, and what to do about it.
+
 **binsight** is a high-performance, opinionated binary size analyzer for developers. It goes beyond raw data dumps, providing **actionable insights** and **health diagnostics** to help you prune bloat from your executables.
 
 ---
