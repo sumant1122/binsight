@@ -24,6 +24,9 @@ enum Commands {
     Top {
         /// Path to the binary
         path: PathBuf,
+        /// Grouping depth (1 for crate, 2+ for modules)
+        #[arg(short, long, default_value_t = 1)]
+        depth: usize,
     },
     /// Compare two binary files
     Diff {
@@ -31,6 +34,11 @@ enum Commands {
         old_path: PathBuf,
         /// Path to the new binary
         new_path: PathBuf,
+    },
+    /// Interactive TUI explorer
+    Explore {
+        /// Path to the binary
+        path: PathBuf,
     },
 }
 
@@ -44,15 +52,19 @@ fn main() -> anyhow::Result<()> {
             let suggestions = analysis::get_suggestions(&info);
             ui::display_suggestions(&suggestions);
         }
-        Commands::Top { path } => {
+        Commands::Top { path, depth } => {
             let info = binary::load_and_analyze(&path)?;
-            ui::display_top_contributors(&info);
+            ui::display_top_contributors(&info, depth);
         }
         Commands::Diff { old_path, new_path } => {
             let old_info = binary::load_and_analyze(&old_path)?;
             let new_info = binary::load_and_analyze(&new_path)?;
             let diff = analysis::compare(&old_info, &new_info);
             ui::display_diff(&diff);
+        }
+        Commands::Explore { path } => {
+            let info = binary::load_and_analyze(&path)?;
+            ui::tui::run_tui(info)?;
         }
     }
 

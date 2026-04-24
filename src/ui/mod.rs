@@ -1,3 +1,5 @@
+pub mod tui;
+
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::Table;
@@ -120,18 +122,23 @@ pub fn display_analysis(info: &BinaryInfo) {
     println!("{table}");
 }
 
-pub fn display_top_contributors(info: &BinaryInfo) {
-    println!("\n🔥 {} Contributors (Grouped by Crate/Module)", "Top".red().bold());
+pub fn display_top_contributors(info: &BinaryInfo, depth: usize) {
+    println!("\n🔥 {} Contributors (Grouped by Depth {})", "Top".red().bold(), depth);
 
-    let mut crate_sizes: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+    let mut group_sizes: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
 
     for symbol in &info.symbols {
-        let name = symbol.crate_name.clone().unwrap_or_else(|| "unknown".to_string());
-        *crate_sizes.entry(name).or_insert(0) += symbol.size;
+        let name = if symbol.module_path.is_empty() {
+            "unknown".to_string()
+        } else {
+            let take_len = std::cmp::min(symbol.module_path.len(), depth);
+            symbol.module_path[..take_len].join("::")
+        };
+        *group_sizes.entry(name).or_insert(0) += symbol.size;
     }
 
-    let mut sorted_crates: Vec<_> = crate_sizes.into_iter().collect();
-    sorted_crates.sort_by(|a, b| b.1.cmp(&a.1));
+    let mut sorted_groups: Vec<_> = group_sizes.into_iter().collect();
+    sorted_groups.sort_by(|a, b| b.1.cmp(&a.1));
 
     let mut table = Table::new();
     table
@@ -139,7 +146,7 @@ pub fn display_top_contributors(info: &BinaryInfo) {
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_header(vec!["Crate/Module", "Size", "%"]);
 
-    for (name, size) in sorted_crates.iter().take(20) {
+    for (name, size) in sorted_groups.iter().take(20) {
         let percentage = (*size as f64 / info.total_size as f64) * 100.0;
         table.add_row(vec![
             name.to_string(),
@@ -158,12 +165,24 @@ pub fn display_top_contributors(info: &BinaryInfo) {
     sym_table
         .load_preset(UTF8_FULL)
         .apply_modifier(UTF8_ROUND_CORNERS)
-        .set_header(vec!["Symbol", "Size", "%"]);
+        .set_header(vec!["Symbol", "Location", "Size", "%"]);
 
     for symbol in sorted_symbols.iter().take(10) {
         let percentage = (symbol.size as f64 / info.total_size as f64) * 100.0;
+        let location = match (&symbol.file, symbol.line) {
+            (Some(f), Some(l)) => {
+                let filename = std::path::Path::new(f)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(f);
+                format!("{}:{}", filename, l)
+            }
+            _ => "unknown".to_string(),
+        };
+
         sym_table.add_row(vec![
             symbol.demangled_name.clone(),
+            location,
             format_size(symbol.size),
             format!("{:.1}%", percentage),
         ]);

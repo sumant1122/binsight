@@ -22,12 +22,18 @@ pub struct SymbolInfo {
     pub demangled_name: String,
     pub size: u64,
     pub crate_name: Option<String>,
+    pub module_path: Vec<String>,
+    pub file: Option<String>,
+    pub line: Option<u32>,
 }
 
 pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
     let file = File::open(path)?;
     let mmap = unsafe { Mmap::map(&file)? };
     let object = object::File::parse(&*mmap)?;
+
+    // Source mapping context using 0.21 API (requires object feature)
+    let ctx = addr2line::Context::new(&object).ok();
 
     let total_size = mmap.len() as u64;
     let mut sections = Vec::new();
@@ -45,19 +51,40 @@ pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
             let name = symbol.name()?.to_string();
             let demangled = demangle(&name).to_string();
             
-            // Simple heuristic for crate name from demangled Rust symbol
-            // e.g., binsize::main::he0da... -> binsize
-            let crate_name = if demangled.contains("::") {
-                Some(demangled.split("::").next().unwrap().to_string())
+            // Refined heuristic for crate and module path
+            let parts: Vec<String> = demangled.split("::")
+                .map(|s| s.to_string())
+                .collect();
+            
+            let crate_name = parts.first().cloned();
+            let module_path = if parts.len() > 1 {
+                parts[..parts.len()-1].to_vec()
             } else {
-                None
+                Vec::new()
             };
+
+            let mut source_file = None;
+            let mut source_line = None;
+
+            if let Some(ctx) = &ctx {
+                if let Ok(mut frames) = ctx.find_frames(symbol.address()).skip_all_loads() {
+                    if let Ok(Some(frame)) = frames.next() {
+                        if let Some(location) = frame.location {
+                            source_file = location.file.map(|f: &str| f.to_string());
+                            source_line = location.line;
+                        }
+                    }
+                }
+            }
 
             symbols.push(SymbolInfo {
                 name,
                 demangled_name: demangled,
                 size: symbol.size(),
                 crate_name,
+                module_path,
+                file: source_file,
+                line: source_line,
             });
         }
     }
