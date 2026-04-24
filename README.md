@@ -1,20 +1,49 @@
 # 📊 binsight
 
-`binsight` is a production-quality binary size analyzer designed for developers. It helps you understand exactly why your binaries are large by breaking them down by section, crate, and symbol, and provides actionable suggestions for optimization.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/rust-1.70%2B-blue.svg)](https://www.rust-lang.org)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/sumant1122/binsight/rust.yml?branch=master)](https://github.com/sumant1122/binsight/actions)
+
+**binsight** is a high-performance, opinionated binary size analyzer for developers. It goes beyond raw data dumps, providing **actionable insights** and **health diagnostics** to help you prune bloat from your executables.
+
+---
+
+## 📖 Table of Contents
+- [Why Binsight?](#-why-binsight)
+- [Features](#-features)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Command Reference](#-command-reference)
+- [Output Examples](#-output-examples)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## 🤔 Why Binsight?
+
+Most binary analysis tools either provide too little information (just total size) or overwhelming low-level dumps. **binsight** bridges this gap by focusing on:
+- **Clarity**: Symbols are grouped by crate and module paths.
+- **Actionability**: A built-in diagnostics engine identifies common bloat patterns (e.g., excessive monomorphization).
+- **Regression Tracking**: A first-class `diff` mode to see exactly how a PR affects binary size.
+
+---
 
 ## ✨ Features
 
-- **Analyze Binary**: Get a high-level breakdown of executable sections (`.text`, `.data`, `.debug`, etc.).
-- **Top Contributors**: Identify which crates or modules are consuming the most space. Supports deep drill-down with `--depth`.
-- **Interactive Explorer (TUI)**: Navigate your binary's size distribution interactively in the terminal.
-- **Diff Mode**: Compare two binaries to see exactly what changed between builds.
-- **Binary Diagnosis**: Automatically detect common size issues (monomorphization bloat, panic machinery, unstripped symbols).
-- **Source Mapping**: Link large symbols directly to source files and line numbers.
-- **Cross-Platform**: Supports ELF (Linux), Mach-O (macOS), and PE (Windows).
+- **🔍 Comprehensive Analysis**: Breakdown by sections (`.text`, `.rodata`, `.debug`).
+- **📦 Dependency Attribution**: Map code size directly to crates and modules.
+- **🩺 Health Diagnostics**: Detects unstripped symbols, generic bloat, and panic machinery overhead.
+- **📍 Source Mapping**: Link the largest symbols directly to source files and line numbers.
+- **⚖️ Diff Mode**: Compare two binaries to see deltas in size and symbol composition.
+- **🖥️ Interactive Explorer**: A terminal UI to navigate your binary's hierarchy.
+
+---
 
 ## 🚀 Installation
 
-Ensure you have Rust and Cargo installed, then clone the repository and build:
+### From Source
+Ensure you have the latest stable version of Rust installed:
 
 ```bash
 git clone https://github.com/sumant1122/binsight.git
@@ -22,66 +51,37 @@ cd binsight
 cargo install --path .
 ```
 
-## 🛠 Usage
+---
 
-### 1. Basic Analysis
-Show the size contribution of each binary section:
+## ⚡ Quick Start
+
+Analyze your current project's binary:
 ```bash
-binsight analyze target/release/my_app
+binsight analyze ./target/release/my_app
 ```
 
-### 2. Interactive Explorer
-Launch the TUI to explore size distribution:
+Drill down into specific module bloat:
 ```bash
-binsight explore target/release/my_app
+binsight top ./target/release/my_app --depth 2
 ```
 
-### 3. Find Top Contributors
-Identify the largest crates and symbols. Use `--depth` to see sub-modules:
-```bash
-# Crate level
-binsight top target/release/my_app --depth 1
+---
 
-# Module level (drill-down)
-binsight top target/release/my_app --depth 3
-```
+## 🛠 Command Reference
 
-### 4. Binary Diagnosis
-Run detailed health checks to find bloat:
-```bash
-binsight diagnose target/release/my_app
-```
+| Command | Description |
+| :--- | :--- |
+| `analyze <path>` | High-level breakdown + basic health diagnostics. |
+| `diagnose <path>` | Detailed report on monomorphization, panic bloat, etc. |
+| `top <path>` | Hierarchical list of contributors (use `--depth`). |
+| `explore <path>` | Interactive TUI for binary navigation. |
+| `diff <old> <new>` | Compare two binaries and show size deltas. |
 
-### 5. Compare Binaries (Diff)
-See what changed between two versions of a binary:
-```bash
-binsight diff old_binary new_binary
-```
+---
 
 ## 💡 Output Examples
 
-### 📊 Analyze Output
-```text
-📊 binsight Analysis
-Total Size: 2.45 MB
-
-╭────────────────────┬───────────┬───────╮
-│ Section            ┆ Size      ┆ %     │
-╞════════════════════╪═══════════╪═══════╡
-│ .text              ┆ 1.84 MB   ┆ 75.1% │
-├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌┤
-│ .rodata            ┆ 400.12 KB ┆ 16.3% │
-╰────────────────────┴───────────┴───────╯
-
-🩺 Binary Health Diagnosis
-╭──────────┬───────────────────┬─────────────────────────────────────────────╮
-│ Category ┆ Issue             ┆ Recommendation                              │
-╞══════════╪═══════════════════╪═════════════════════════════════════════════╡
-│ Binary   ┆ Unstripped Binary ┆ Run 'strip' to reduce size by 60-80%.       │
-╰──────────┴───────────────────┴─────────────────────────────────────────────╯
-```
-
-### 🔥 Top Contributors (with Source Mapping)
+### Hierarchical Attribution (with Source Mapping)
 ```text
 🔥 Top Contributors (Grouped by Depth 1)
 ╭────────────────┬───────────┬──────╮
@@ -100,13 +100,14 @@ Total Size: 2.45 MB
 ╰───────────────────────────┴─────────────────────┴──────────┴──────╯
 ```
 
-### 🔍 Diff Mode
-```text
-🔍 Binary Comparison
-Old Size: 22.39 MB
-New Size: 3.10 MB
-Delta:    19.29 MB (Saved!)
-```
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on bug reports, feature requests, and pull requests.
+
+---
 
 ## ⚖️ License
-MIT
+
+Distributed under the MIT License. See `LICENSE` for more information.
