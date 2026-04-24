@@ -1,0 +1,172 @@
+use comfy_table::modifiers::UTF8_ROUND_CORNERS;
+use comfy_table::presets::UTF8_FULL;
+use comfy_table::Table;
+use crate::binary::BinaryInfo;
+use colored::*;
+
+use crate::analysis::{DiffResult, Suggestion};
+
+pub fn display_suggestions(suggestions: &[Suggestion]) {
+    if suggestions.is_empty() {
+        return;
+    }
+
+    println!("\n💡 {}", "Optimization Suggestions".green().bold());
+    for s in suggestions {
+        println!("• {}: {}", s.title.yellow().bold(), s.description);
+    }
+}
+
+pub fn display_diff(diff: &DiffResult) {
+    println!("\n🔍 {} Comparison", "Binary".magenta().bold());
+    
+    let total_delta = diff.new_size as i64 - diff.old_size as i64;
+    let delta_color = if total_delta > 0 { "red" } else { "green" };
+    
+    println!("Old Size: {}", format_size(diff.old_size));
+    println!("New Size: {}", format_size(diff.new_size));
+    println!("Delta:    {}\n", format_size(total_delta.abs() as u64).color(delta_color).bold());
+
+    if !diff.section_diffs.is_empty() {
+        println!("📂 {} Changes", "Section".cyan());
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL).apply_modifier(UTF8_ROUND_CORNERS)
+            .set_header(vec!["Section", "Old", "New", "Delta"]);
+
+        let mut sorted_sections = diff.section_diffs.clone();
+        sorted_sections.sort_by_key(|s| (s.new_size as i64 - s.old_size as i64).abs());
+        sorted_sections.reverse();
+
+        for s in sorted_sections.iter().take(10) {
+            let delta = s.new_size as i64 - s.old_size as i64;
+            let delta_str = if delta > 0 { 
+                format!("+{}", format_size(delta as u64)).red() 
+            } else { 
+                format!("-{}", format_size(delta.abs() as u64)).green() 
+            };
+
+            table.add_row(vec![
+                s.name.clone(),
+                format_size(s.old_size),
+                format_size(s.new_size),
+                delta_str.to_string(),
+            ]);
+        }
+        println!("{table}\n");
+    }
+
+    if !diff.symbol_diffs.is_empty() {
+        println!("📜 {} Changes (Top 10)", "Symbol".yellow());
+        let mut table = Table::new();
+        table.load_preset(UTF8_FULL).apply_modifier(UTF8_ROUND_CORNERS)
+            .set_header(vec!["Symbol", "Old", "New", "Delta"]);
+
+        let mut sorted_symbols = diff.symbol_diffs.clone();
+        sorted_symbols.sort_by_key(|s| (s.new_size as i64 - s.old_size as i64).abs());
+        sorted_symbols.reverse();
+
+        for s in sorted_symbols.iter().take(10) {
+            let delta = s.new_size as i64 - s.old_size as i64;
+            let delta_str = if delta > 0 { 
+                format!("+{}", format_size(delta as u64)).red() 
+            } else { 
+                format!("-{}", format_size(delta.abs() as u64)).green() 
+            };
+
+            table.add_row(vec![
+                s.name.clone(),
+                format_size(s.old_size),
+                format_size(s.new_size),
+                delta_str.to_string(),
+            ]);
+        }
+        println!("{table}");
+    }
+}
+
+pub fn format_size(bytes: u64) -> String {
+    if bytes < 1024 {
+        format!("{} B", bytes)
+    } else if bytes < 1024 * 1024 {
+        format!("{:.2} KB", bytes as f64 / 1024.0)
+    } else {
+        format!("{:.2} MB", bytes as f64 / (1024.0 * 1024.0))
+    }
+}
+
+pub fn display_analysis(info: &BinaryInfo) {
+    println!("\n📊 {} Analysis", "binsize".cyan().bold());
+    println!("Total Size: {}\n", format_size(info.total_size).green().bold());
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_header(vec!["Section", "Size", "%"]);
+
+    let mut sorted_sections = info.sections.clone();
+    sorted_sections.sort_by(|a, b| b.size.cmp(&a.size));
+
+    for section in sorted_sections {
+        if section.size == 0 { continue; }
+        let percentage = (section.size as f64 / info.total_size as f64) * 100.0;
+        table.add_row(vec![
+            section.name,
+            format_size(section.size),
+            format!("{:.1}%", percentage),
+        ]);
+    }
+
+    println!("{table}");
+}
+
+pub fn display_top_contributors(info: &BinaryInfo) {
+    println!("\n🔥 {} Contributors (Grouped by Crate/Module)", "Top".red().bold());
+
+    let mut crate_sizes: std::collections::HashMap<String, u64> = std::collections::HashMap::new();
+
+    for symbol in &info.symbols {
+        let name = symbol.crate_name.clone().unwrap_or_else(|| "unknown".to_string());
+        *crate_sizes.entry(name).or_insert(0) += symbol.size;
+    }
+
+    let mut sorted_crates: Vec<_> = crate_sizes.into_iter().collect();
+    sorted_crates.sort_by(|a, b| b.1.cmp(&a.1));
+
+    let mut table = Table::new();
+    table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_header(vec!["Crate/Module", "Size", "%"]);
+
+    for (name, size) in sorted_crates.iter().take(20) {
+        let percentage = (*size as f64 / info.total_size as f64) * 100.0;
+        table.add_row(vec![
+            name.to_string(),
+            format_size(*size),
+            format!("{:.1}%", percentage),
+        ]);
+    }
+
+    println!("{table}");
+
+    println!("\n📜 {} Symbols", "Largest".yellow().bold());
+    let mut sorted_symbols = info.symbols.clone();
+    sorted_symbols.sort_by(|a, b| b.size.cmp(&a.size));
+
+    let mut sym_table = Table::new();
+    sym_table
+        .load_preset(UTF8_FULL)
+        .apply_modifier(UTF8_ROUND_CORNERS)
+        .set_header(vec!["Symbol", "Size", "%"]);
+
+    for symbol in sorted_symbols.iter().take(10) {
+        let percentage = (symbol.size as f64 / info.total_size as f64) * 100.0;
+        sym_table.add_row(vec![
+            symbol.demangled_name.clone(),
+            format_size(symbol.size),
+            format!("{:.1}%", percentage),
+        ]);
+    }
+    println!("{sym_table}");
+}
