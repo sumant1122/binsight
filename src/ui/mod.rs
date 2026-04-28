@@ -45,7 +45,7 @@ pub fn display_diff(diff: &DiffResult) {
     
     println!("Old Size: {}", format_size(diff.old_size));
     println!("New Size: {}", format_size(diff.new_size));
-    println!("Delta:    {}\n", format_size(total_delta.abs() as u64).color(delta_color).bold());
+    println!("Delta:    {}\n", format_size(total_delta.unsigned_abs()).color(delta_color).bold());
 
     if !diff.section_diffs.is_empty() {
         println!("📂 {} Changes", "Section".cyan());
@@ -62,7 +62,7 @@ pub fn display_diff(diff: &DiffResult) {
             let delta_str = if delta > 0 { 
                 format!("+{}", format_size(delta as u64)).red() 
             } else { 
-                format!("-{}", format_size(delta.abs() as u64)).green() 
+                format!("-{}", format_size(delta.unsigned_abs())).green() 
             };
 
             table.add_row(vec![
@@ -90,7 +90,7 @@ pub fn display_diff(diff: &DiffResult) {
             let delta_str = if delta > 0 { 
                 format!("+{}", format_size(delta as u64)).red() 
             } else { 
-                format!("-{}", format_size(delta.abs() as u64)).green() 
+                format!("-{}", format_size(delta.unsigned_abs())).green() 
             };
 
             table.add_row(vec![
@@ -125,7 +125,7 @@ pub fn display_analysis(info: &BinaryInfo) {
         .set_header(vec!["Section", "Size", "%"]);
 
     let mut sorted_sections = info.sections.clone();
-    sorted_sections.sort_by(|a, b| b.size.cmp(&a.size));
+    sorted_sections.sort_by_key(|b| std::cmp::Reverse(b.size));
 
     for section in sorted_sections {
         if section.size == 0 { continue; }
@@ -156,7 +156,7 @@ pub fn display_top_contributors(info: &BinaryInfo, depth: usize) {
     }
 
     let mut sorted_groups: Vec<_> = group_sizes.into_iter().collect();
-    sorted_groups.sort_by(|a, b| b.1.cmp(&a.1));
+    sorted_groups.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     let mut table = Table::new();
     table
@@ -177,7 +177,7 @@ pub fn display_top_contributors(info: &BinaryInfo, depth: usize) {
 
     println!("\n📜 {} Symbols", "Largest".yellow().bold());
     let mut sorted_symbols = info.symbols.clone();
-    sorted_symbols.sort_by(|a, b| b.size.cmp(&a.size));
+    sorted_symbols.sort_by_key(|b| std::cmp::Reverse(b.size));
 
     let mut sym_table = Table::new();
     sym_table

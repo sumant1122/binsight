@@ -68,7 +68,7 @@ pub fn run_diagnostics(info: &BinaryInfo) -> Vec<Diagnostic> {
     let mut high_bloat_generics: Vec<_> = generics.into_iter()
         .filter(|(_, (count, _))| *count > 5)
         .collect();
-    high_bloat_generics.sort_by(|a, b| b.1.1.cmp(&a.1.1));
+    high_bloat_generics.sort_by_key(|b| std::cmp::Reverse(b.1.1));
 
     if let Some((name, (count, size))) = high_bloat_generics.first() {
         diags.push(Diagnostic {
@@ -115,6 +115,24 @@ pub fn run_diagnostics(info: &BinaryInfo) -> Vec<Diagnostic> {
         });
     }
 
+    // 5. Large Individual Symbols
+    let mut large_symbols: Vec<_> = info.symbols.iter()
+        .filter(|s| s.size > 100_000)
+        .collect();
+    large_symbols.sort_by_key(|b| std::cmp::Reverse(b.size));
+
+    if let Some(sym) = large_symbols.first() {
+        diags.push(Diagnostic {
+            category: "Code".to_string(),
+            title: "Extremely Large Symbol".to_string(),
+            description: format!(
+                "Symbol '{}' is {}, which is very large for a single function. Consider splitting it.",
+                sym.demangled_name, crate::ui::format_size(sym.size)
+            ),
+            severity: Severity::Info,
+        });
+    }
+
     diags
 }
 
@@ -152,5 +170,47 @@ pub fn compare(old: &BinaryInfo, new: &BinaryInfo) -> DiffResult {
         new_size: new.total_size,
         section_diffs,
         symbol_diffs,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::binary::{BinaryInfo, SectionInfo, SymbolInfo};
+
+    fn mock_info() -> BinaryInfo {
+        BinaryInfo {
+            total_size: 1000,
+            sections: vec![SectionInfo { name: ".text".to_string(), size: 500 }],
+            symbols: vec![SymbolInfo {
+                demangled_name: "test_sym".to_string(),
+                size: 100,
+                module_path: vec!["crate".to_string()],
+                file: None,
+                line: None,
+            }],
+        }
+    }
+
+    #[test]
+    fn test_strip_diagnostic() {
+        let mut info = mock_info();
+        info.sections.push(SectionInfo { name: ".debug_info".to_string(), size: 100 });
+        let diags = run_diagnostics(&info);
+        assert!(diags.iter().any(|d| d.title == "Unstripped Binary"));
+    }
+
+    #[test]
+    fn test_panic_diagnostic() {
+        let mut info = mock_info();
+        info.symbols.push(SymbolInfo {
+            demangled_name: "rust_begin_unwind".to_string(),
+            size: 60000,
+            module_path: vec![],
+            file: None,
+            line: None,
+        });
+        let diags = run_diagnostics(&info);
+        assert!(diags.iter().any(|d| d.title == "Panic Machinery Bloat"));
     }
 }

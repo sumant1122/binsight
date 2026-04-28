@@ -1,6 +1,7 @@
 mod binary;
 mod ui;
 mod analysis;
+mod commands;
 
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
@@ -51,32 +52,10 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Analyze { path } => {
-            let info = binary::load_and_analyze(&path)?;
-            ui::display_analysis(&info);
-            let diags = analysis::run_diagnostics(&info);
-            ui::display_diagnostics(&diags);
-        }
-        Commands::Diagnose { path } => {
-            let info = binary::load_and_analyze(&path)?;
-            let diags = analysis::run_diagnostics(&info);
-            ui::display_diagnostics(&diags);
-        }
-        Commands::Top { path, depth } => {
-            let info = binary::load_and_analyze(&path)?;
-            ui::display_top_contributors(&info, depth);
-        }
-        Commands::Diff { old_path, new_path } => {
-            let old_info = binary::load_and_analyze(&old_path)?;
-            let new_info = binary::load_and_analyze(&new_path)?;
-            let diff = analysis::compare(&old_info, &new_info);
-            ui::display_diff(&diff);
-        }
-        Commands::Explore { path } => {
-            let info = binary::load_and_analyze(&path)?;
-            ui::tui::run_tui(info)?;
-        }
+        Commands::Analyze { path } => commands::analyze::execute(path),
+        Commands::Diagnose { path } => commands::diagnose::execute(path),
+        Commands::Top { path, depth } => commands::top::execute(path, depth),
+        Commands::Diff { old_path, new_path } => commands::diff::execute(old_path, new_path),
+        Commands::Explore { path } => commands::explore::execute(path),
     }
-
-    Ok(())
 }

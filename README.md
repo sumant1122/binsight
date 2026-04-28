@@ -31,7 +31,7 @@ Most binary analysis tools either provide too little information (just total siz
 
 - **🔍 Comprehensive Analysis**: Breakdown by sections (`.text`, `.rodata`, `.debug`).
 - **📦 Dependency Attribution**: Map code size directly to crates and modules.
-- **🩺 Health Diagnostics**: Detects unstripped symbols, generic bloat, and panic machinery overhead.
+- **🩺 Health Diagnostics**: Detects unstripped symbols, generic bloat, panic machinery overhead, and extremely large individual functions.
 - **📍 Source Mapping**: Link the largest symbols directly to source files and line numbers.
 - **⚖️ Diff Mode**: Compare two binaries to see deltas in size and symbol composition.
 - **🖥️ Interactive Explorer**: A terminal UI to navigate your binary's hierarchy.

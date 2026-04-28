@@ -50,13 +50,26 @@ pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
             let demangled = demangle(&name).to_string();
             
             // Refined heuristic for crate and module path
-            let parts: Vec<String> = demangled.split("::")
+            // Rust symbols often end with a hash like ::h1234567890abcdef
+            let base_name = if let Some(idx) = demangled.rfind("::h") {
+                if demangled[idx..].len() >= 10 { // conservative check for hash
+                    &demangled[..idx]
+                } else {
+                    &demangled
+                }
+            } else {
+                &demangled
+            };
+
+            let parts: Vec<String> = base_name.split("::")
                 .map(|s| s.to_string())
                 .collect();
             
             let module_path = if parts.len() > 1 {
                 parts[..parts.len()-1].to_vec()
             } else {
+                // For top-level symbols, the first part might be the crate
+                // but if there are no colons, we don't have enough info to be sure.
                 Vec::new()
             };
 

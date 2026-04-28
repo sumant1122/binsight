@@ -50,7 +50,7 @@ fn run_app<B: ratatui::backend::Backend>(terminal: &mut Terminal<B>, info: Binar
         *group_sizes.entry(name).or_insert(0) += symbol.size;
     }
     let mut items: Vec<_> = group_sizes.into_iter().collect();
-    items.sort_by(|a, b| b.1.cmp(&a.1));
+    items.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     let mut state = ListState::default();
     state.select(Some(0));
