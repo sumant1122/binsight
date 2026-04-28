@@ -75,6 +75,7 @@ binsight top ./target/release/my_app --depth 2
 | `top <path>` | Hierarchical list of contributors (use `--depth`). |
 | `explore <path>` | Interactive TUI for binary navigation. |
 | `diff <old> <new>` | Compare two binaries and show size deltas. |
+| `build` | Build the project with timings and analyze artifacts. |
 
 ---
 

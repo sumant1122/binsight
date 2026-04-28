@@ -41,6 +41,12 @@ enum Commands {
         /// Path to the new binary
         new_path: PathBuf,
     },
+    /// Build the project with timings and analyze it
+    Build {
+        /// Path to Cargo.toml
+        #[arg(short, long)]
+        manifest_path: Option<PathBuf>,
+    },
     /// Interactive TUI explorer
     Explore {
         /// Path to the binary
@@ -62,6 +68,7 @@ fn main() -> anyhow::Result<()> {
         Commands::Diagnose { path } => commands::diagnose::execute(path),
         Commands::Top { path, depth } => commands::top::execute(path, depth),
         Commands::Diff { old_path, new_path } => commands::diff::execute(old_path, new_path),
+        Commands::Build { manifest_path } => commands::build::execute(manifest_path),
         Commands::Explore { path } => commands::explore::execute(path),
     }
 }
