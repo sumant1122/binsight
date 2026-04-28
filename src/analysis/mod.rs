@@ -177,11 +177,12 @@ pub fn compare(old: &BinaryInfo, new: &BinaryInfo) -> DiffResult {
 mod tests {
     use super::*;
     use crate::binary::{BinaryInfo, SectionInfo, SymbolInfo};
+    use object::SectionKind;
 
     fn mock_info() -> BinaryInfo {
         BinaryInfo {
             total_size: 1000,
-            sections: vec![SectionInfo { name: ".text".to_string(), size: 500 }],
+            sections: vec![SectionInfo { name: ".text".to_string(), size: 500, kind: SectionKind::Text }],
             symbols: vec![SymbolInfo {
                 demangled_name: "test_sym".to_string(),
                 size: 100,
@@ -195,7 +196,7 @@ mod tests {
     #[test]
     fn test_strip_diagnostic() {
         let mut info = mock_info();
-        info.sections.push(SectionInfo { name: ".debug_info".to_string(), size: 100 });
+        info.sections.push(SectionInfo { name: ".debug_info".to_string(), size: 100, kind: SectionKind::Debug });
         let diags = run_diagnostics(&info);
         assert!(diags.iter().any(|d| d.title == "Unstripped Binary"));
     }

@@ -49,6 +49,12 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
+    #[cfg(windows)]
+    if !colored::control::SHOULD_COLOR.should_colorize() {
+        // Simple heuristic: if color is disabled, maybe Unicode is also risky
+        // in older CMD.exe environments.
+    }
+
     let cli = Cli::parse();
 
     match cli.command {

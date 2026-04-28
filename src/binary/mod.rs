@@ -1,8 +1,10 @@
-use object::{Object, ObjectSection, ObjectSymbol};
+use object::{Object, ObjectSection, ObjectSymbol, SectionKind};
 use std::path::Path;
 use memmap2::Mmap;
 use std::fs::File;
 use rustc_demangle::demangle;
+
+mod pdb_support;
 
 pub struct BinaryInfo {
     pub total_size: u64,
@@ -14,6 +16,8 @@ pub struct BinaryInfo {
 pub struct SectionInfo {
     pub name: String,
     pub size: u64,
+    #[allow(dead_code)]
+    pub kind: SectionKind,
 }
 
 #[derive(Clone)]
@@ -40,6 +44,7 @@ pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
         sections.push(SectionInfo {
             name: section.name()?.to_string(),
             size: section.size(),
+            kind: section.kind(),
         });
     }
 
@@ -95,6 +100,10 @@ pub fn load_and_analyze(path: &Path) -> anyhow::Result<BinaryInfo> {
                 line: source_line,
             });
         }
+    }
+
+    if object.format() == object::BinaryFormat::Pe {
+        let _ = pdb_support::try_load_pdb(path, &mut symbols);
     }
 
     Ok(BinaryInfo {
